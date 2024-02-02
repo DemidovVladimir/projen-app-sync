@@ -1,0 +1,23 @@
+// graphql-schema/schema.graphql
+// use @aws_lambda decorator to enable authorization for certain fields, queries or mutations
+type Query {
+  orders: [Order]
+}
+
+type Order {
+  id: String
+  date: AWSDateTime
+  totalAmount: Float
+  customer: Customer
+  products: [Product]
+}
+
+type Customer {
+  email: String
+  fullName: String
+}
+
+type Product {
+  price: Float
+  quantity: Int
+}

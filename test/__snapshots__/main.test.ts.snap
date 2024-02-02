@@ -1,0 +1,168 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Snapshot 1`] = `
+{
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "RewardServiceStorageFC510B60": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "_ph",
+            "AttributeType": "S",
+          },
+          {
+            "AttributeName": "_ps",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "DeletionProtectionEnabled": false,
+        "KeySchema": [
+          {
+            "AttributeName": "_ph",
+            "KeyType": "HASH",
+          },
+          {
+            "AttributeName": "_ps",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "StreamSpecification": {
+          "StreamViewType": "NEW_AND_OLD_IMAGES",
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "RewardsPlan995A9A0F": {
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "RewardsPlan",
+          "BackupPlanRule": [
+            {
+              "Lifecycle": {
+                "DeleteAfterDays": 365,
+                "MoveToColdStorageAfterDays": 30,
+              },
+              "RuleName": "Monthly1Year",
+              "ScheduleExpression": "cron(0 5 1 * ? *)",
+              "TargetBackupVault": {
+                "Fn::GetAtt": [
+                  "RewardsVault8C0F0A50",
+                  "BackupVaultName",
+                ],
+              },
+            },
+          ],
+        },
+      },
+      "Type": "AWS::Backup::BackupPlan",
+    },
+    "RewardsPlanRewardsSelectionC52CE61C": {
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "RewardsPlan995A9A0F",
+            "BackupPlanId",
+          ],
+        },
+        "BackupSelection": {
+          "IamRoleArn": {
+            "Fn::GetAtt": [
+              "RewardsPlanRewardsSelectionRole6BBA8B40",
+              "Arn",
+            ],
+          },
+          "Resources": [
+            {
+              "Fn::GetAtt": [
+                "RewardServiceStorageFC510B60",
+                "Arn",
+              ],
+            },
+          ],
+          "SelectionName": "RewardsSelection",
+        },
+      },
+      "Type": "AWS::Backup::BackupSelection",
+    },
+    "RewardsPlanRewardsSelectionRole6BBA8B40": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "backup.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "RewardsVault8C0F0A50": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "BackupVaultName": "testRewardsVault0A3F88D4",
+      },
+      "Type": "AWS::Backup::BackupVault",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;

@@ -54,3 +54,4 @@ junit.xml
 .parcel-cache/
 !/.nvmrc
 !/.projenrc.ts
+.env
