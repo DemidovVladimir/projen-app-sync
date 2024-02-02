@@ -1,7 +1,6 @@
 // graphql-schema/schema.graphql
-// use @aws_lambda decorator to enable authorization for certain fields, queries or mutations
 type Query {
-  orders: [Order]
+  getOrderById(id: String): [Order]
 }
 
 type Order {
