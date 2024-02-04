@@ -48,6 +48,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@aws-cdk/aws-appsync": "^1.204.0",
     "@aws-cdk/aws-appsync-alpha": "^2.59.0-alpha.0",
     "aws-cdk-lib": "^2.1.0",
     "awscdk-appsync-utils": "^0.0.343",

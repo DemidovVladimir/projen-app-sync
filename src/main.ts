@@ -1,15 +1,11 @@
-import { App, Stack, StackProps } from 'aws-cdk-lib';
-import { CfnDataSource, MappingTemplate } from 'aws-cdk-lib/aws-appsync';
-import { BackupVault, BackupPlan, BackupPlanRule, BackupResource } from 'aws-cdk-lib/aws-backup';
+import { GraphqlApi, ISchema, MappingTemplate } from '@aws-cdk/aws-appsync-alpha';
+import { App, Stack, StackProps, aws_appsync } from 'aws-cdk-lib';
 import { Table, BillingMode, AttributeType, StreamViewType } from 'aws-cdk-lib/aws-dynamodb';
-'aws-cdk-lib/aws-appsync';
-import { Role, ServicePrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { Runtime } from 'aws-cdk-lib/aws-lambda';
-import { NodejsFunction, SourceMapMode } from 'aws-cdk-lib/aws-lambda-nodejs';
+// import { Runtime } from 'aws-cdk-lib/aws-lambda';
+// import { NodejsFunction, SourceMapMode } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { CodeFirstSchema, ResolvableField } from 'awscdk-appsync-utils';
 import { Construct } from 'constructs';
-import { GraphqlApi } from '@aws-cdk/aws-appsync-alpha';
-import { Customer, Order, Product, args } from './schemas/marketplace-types';
+import { Customer, Order, Product, argsOrders, argsProducts } from './schemas/marketplace-types';
 declare const dummyRequest: MappingTemplate;
 declare const dummyResponse: MappingTemplate;
 
@@ -17,6 +13,7 @@ export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
 
+    // dynamodb using single table design
     const marketplaceTable = new Table(this, 'Marketplace', {
       billingMode: BillingMode.PAY_PER_REQUEST,
       partitionKey: {
@@ -30,64 +27,42 @@ export class MyStack extends Stack {
       stream: StreamViewType.NEW_AND_OLD_IMAGES,
       pointInTimeRecovery: true,
     });
-    const backupVault = new BackupVault(scope, `${id}Vault`);
-    const plan = new BackupPlan(scope, `${id}Plan`, {
-      backupVault,
-      backupPlanRules: [BackupPlanRule.monthly1Year(backupVault)],
-    });
-    plan.addSelection(`${id}Selection`, {
-      resources: [BackupResource.fromDynamoDbTable(marketplaceTable)],
+
+    // add global secondary index to map customer orders to products
+    marketplaceTable.addGlobalSecondaryIndex({
+      indexName: 'GSI1',
+      partitionKey: {
+        name: 'G1K',
+        type: AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'G1S',
+        type: AttributeType.STRING,
+      },
     });
 
     // code first graphql schema
     const schema = new CodeFirstSchema();
-    const apiMarketplace = new GraphqlApi(this, 'api', { name: 'marketplaceApi', schema });
 
-    // lambda
-    const marketplaceLambda = new NodejsFunction(this, 'AppsyncMarketplaceLambda', {
-      runtime: Runtime.NODEJS_18_X,
-      awsSdkConnectionReuse: true,
-      entry: 'lambdas/marketplace',
-      handler: 'handler',
-      environment: {
-        APPSYNC_TABLE: marketplaceTable?.tableName,
-      },
-      bundling: {
-        sourceMap: true,
-        sourceMapMode: SourceMapMode.DEFAULT,
-      },
-    });
+    // graphql api
+    const apiMarketplace = new GraphqlApi(this, 'marketplaceApi', { name: 'marketplaceApi', schema: schema as unknown as ISchema });
 
-    const invokeLambdaRole = new Role(this, 'appsync-lambdaInvoke', {
-      assumedBy: new ServicePrincipal('appsync.amazonaws.com'),
-    });
-
-    invokeLambdaRole.addToPolicy(new PolicyStatement({
-      effect: Effect.ALLOW,
-      resources: [marketplaceLambda.functionArn],
-      actions: ['lambda:InvokeFunction'],
+    // add query resolvers to get orders by customer id
+    schema.addQuery('getOrdersByCustomerId', new ResolvableField({
+      returnType: Order.attribute({ isList: true }),
+      args: argsOrders,
+      dataSource: apiMarketplace.addDynamoDbDataSource('MarketplaceGetOrderByCustomerId', marketplaceTable) as unknown as aws_appsync.BaseDataSource,
+      requestMappingTemplate: MappingTemplate.dynamoDbGetItem('PK', 'SK'),
+      responseMappingTemplate: MappingTemplate.dynamoDbResultItem(),
     }));
 
-    // for datasource for the graphql
-    const lambdaDs = new CfnDataSource(this, 'MarketplaceLambdaDatasource', {
-      apiId: apiMarketplace.apiId,
-      name: 'MarketplaceLambdaDatasource',
-      type: 'AWS_LAMBDA',
-      lambdaConfig: {
-        lambdaFunctionArn: marketplaceLambda.functionArn,
-      },
-      serviceRoleArn: invokeLambdaRole.roleArn,
-    });
-
-    // db access for the lambda
-    marketplaceTable?.grantFullAccess(marketplaceLambda);
-
-    schema.addQuery('getOrderById', new ResolvableField({
-      returnType: Order.attribute(),
-      args,
-      dataSource: apiMarketplace.addLambdaDataSource('MarketplaceLambda', lambdaDs),
-      requestMappingTemplate: dummyRequest,
-      responseMappingTemplate: dummyResponse,
+    // add query resolver to get all products by order id
+    schema.addQuery('getProductsByOrderId', new ResolvableField({
+      returnType: Order.attribute({ isList: true }),
+      args: argsProducts,
+      dataSource: apiMarketplace.addDynamoDbDataSource('MarketplaceGetProducstByOrderId', marketplaceTable) as unknown as aws_appsync.BaseDataSource,
+      requestMappingTemplate: MappingTemplate.dynamoDbScanTable(),
+      responseMappingTemplate: MappingTemplate.dynamoDbResultList(),
     }));
 
     schema.addType(Product);

@@ -1,32 +1,17 @@
-# replace this
-## TODO: Add concise README
+# Marketplace template
 
-### DOD
-Create an AppSync app which allows querying customers orders from DynamoDB. Only read-queries, the task does not imply implementation of mutations which change the data.
+## Project infra:
+ - DynamoDB with 1 additional Global Secondary key
+ - Appsync with code first approach
 
-### Create AWS CDK app
-Use a projen template
-### Provision DynamoDB
-Store some seed data of the following hierarchy
-Customer (email, full name) – o2m → Order (id, date, total amount, products quantity) – m2m → Product (name, price)
-Provision AppSync app with a query of the following signature:
+## Places to improve:
+ - Add backup to dynamodb
+ - Add pipeline to deploy whatever merged to main branch or release branch
+ - Add tests to validate synthesised stack(inline snapshots as an example)
+ - Add lambda to be able to provision and check data, probably extend logs(currently data source is directly dynamoDB)
 
-```javascript
-  query {
-    orders {
-      id
-      date
-      totalAmount
+## CLI commands validate:
+  - yarn synth
 
-      customer {
-        email
-        fullName
-      }
-      
-      products {
-        price
-        quantity
-      }
-    }
-  }
-```
+Adding expects inline snapshot to test will generate cloudformation template which can be validate with the assertions.
+In any case the cdk.out contains generated cloudformation config file aftre running yarn synth. 
