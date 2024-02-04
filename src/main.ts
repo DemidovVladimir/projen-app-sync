@@ -1,13 +1,9 @@
 import { GraphqlApi, ISchema, MappingTemplate } from '@aws-cdk/aws-appsync-alpha';
 import { App, Stack, StackProps, aws_appsync } from 'aws-cdk-lib';
 import { Table, BillingMode, AttributeType, StreamViewType } from 'aws-cdk-lib/aws-dynamodb';
-// import { Runtime } from 'aws-cdk-lib/aws-lambda';
-// import { NodejsFunction, SourceMapMode } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { CodeFirstSchema, ResolvableField } from 'awscdk-appsync-utils';
 import { Construct } from 'constructs';
 import { Customer, Order, Product, argsOrders, argsProducts } from './schemas/marketplace-types';
-declare const dummyRequest: MappingTemplate;
-declare const dummyResponse: MappingTemplate;
 
 export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
