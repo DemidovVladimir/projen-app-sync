@@ -11,7 +11,9 @@
  - Add lambda to be able to provision and check data, probably extend logs(currently data source is directly dynamoDB)
 
 ## CLI commands validate:
+```bash
   - yarn synth
+```
 
 Adding expects inline snapshot to test will generate cloudformation template which can be validate with the assertions.
 In any case the cdk.out contains generated cloudformation config file aftre running yarn synth. 
